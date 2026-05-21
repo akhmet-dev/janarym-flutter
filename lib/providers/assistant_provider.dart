@@ -40,6 +40,7 @@ class AssistantProvider extends ChangeNotifier {
 
   // ─── Private ───
   Uint8List? _capturedFrameAtPTTStart;
+  bool _isCapturing = false;
 
   AssistantProvider() {
     _initNetworkMonitor();
@@ -93,12 +94,18 @@ class AssistantProvider extends ChangeNotifier {
     if (cameraController == null || !cameraController!.value.isInitialized) {
       return null;
     }
+    if (_isCapturing) {
+      return null; // Previous capture still in progress
+    }
+    _isCapturing = true;
     try {
       final file = await cameraController!.takePicture();
       return await file.readAsBytes();
     } catch (e) {
       debugPrint('Frame capture error: $e');
       return null;
+    } finally {
+      _isCapturing = false;
     }
   }
 
