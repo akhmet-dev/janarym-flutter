@@ -138,6 +138,10 @@ class AssistantProvider extends ChangeNotifier {
         },
         onError: (error) {
           debugPrint('STT error: $error');
+          if (error.permanent && _mode == AssistantMode.recording) {
+            // STT gave up (e.g. no speech detected) — auto-stop and process with camera only
+            stopPTT();
+          }
         },
       );
     }
@@ -178,12 +182,18 @@ class AssistantProvider extends ChangeNotifier {
 
   Future<void> stopPTT() async {
     if (_mode != AssistantMode.recording) {
-      _mode = AssistantMode.idle;
-      notifyListeners();
+      if (_mode != AssistantMode.processing) {
+        _mode = AssistantMode.idle;
+        notifyListeners();
+      }
       return;
     }
 
-    await _speech.stop();
+    try {
+      await _speech.stop();
+    } catch (e) {
+      debugPrint('Speech stop error: $e');
+    }
     _mode = AssistantMode.processing;
     notifyListeners();
 
