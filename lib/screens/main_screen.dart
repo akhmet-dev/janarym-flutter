@@ -1,6 +1,5 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
+import 'package:camera/camera.dart' hide FocusMode;
 import 'package:provider/provider.dart';
 import '../core/app_theme.dart';
 import '../models/assistant_mode.dart';
