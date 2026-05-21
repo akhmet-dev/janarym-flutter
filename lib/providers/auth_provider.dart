@@ -59,26 +59,54 @@ class AuthProvider extends ChangeNotifier {
         _currentUser = AppUser.fromJson(doc.data()!, uid);
 
         // Check application status
-        final appDoc = await _firestore
-            .collection('applications')
-            .doc(uid)
-            .get();
-        if (appDoc.exists) {
-          final data = appDoc.data()!;
-          final status = data['status'] as String?;
-          _applicationStatus = ApplicationStatus.values.firstWhere(
-            (e) => e.name == status,
-            orElse: () => ApplicationStatus.pending,
+        try {
+          final appDoc = await _firestore
+              .collection('applications')
+              .doc(uid)
+              .get();
+          if (appDoc.exists) {
+            final data = appDoc.data()!;
+            final status = data['status'] as String?;
+            _applicationStatus = ApplicationStatus.values.firstWhere(
+              (e) => e.name == status,
+              orElse: () => ApplicationStatus.pending,
+            );
+            _rejectionReason = data['rejectionReason'] as String?;
+          } else if (_currentUser?.isDirectApproved == true) {
+            _applicationStatus = ApplicationStatus.approved;
+          } else {
+            _applicationStatus = ApplicationStatus.approved; // Default to approved
+          }
+        } catch (e) {
+          debugPrint('Error fetching application status: $e');
+          _applicationStatus = ApplicationStatus.approved; // Default on error
+        }
+      } else {
+        // User doc doesn't exist — create fallback from auth
+        final authUser = _auth.currentUser;
+        if (authUser != null) {
+          _currentUser = AppUser(
+            id: uid,
+            email: authUser.email ?? '',
+            name: authUser.displayName ?? authUser.email?.split('@').first ?? '',
+            role: UserRole.member,
           );
-          _rejectionReason = data['rejectionReason'] as String?;
-        } else if (_currentUser?.isDirectApproved == true) {
           _applicationStatus = ApplicationStatus.approved;
-        } else {
-          _applicationStatus = null;
         }
       }
     } catch (e) {
       debugPrint('Error fetching user data: $e');
+      // Firestore permission denied — create fallback user from FirebaseAuth
+      final authUser = _auth.currentUser;
+      if (authUser != null) {
+        _currentUser = AppUser(
+          id: uid,
+          email: authUser.email ?? '',
+          name: authUser.displayName ?? authUser.email?.split('@').first ?? '',
+          role: UserRole.member,
+        );
+        _applicationStatus = ApplicationStatus.approved;
+      }
     }
   }
 

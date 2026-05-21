@@ -82,17 +82,25 @@ enum ResponseLength {
 }
 
 enum GPTVoice {
-  ember, jupiter;
+  ash, ballad, coral, sage, verse, ember, jupiter;
 
   String get openAIVoiceID => name;
 
-  String announcement(AppLanguage lang) {
+  String displayName(AppLanguage lang) {
+    final kk = lang == AppLanguage.kazakh;
     switch (this) {
-      case GPTVoice.ember:
-        return lang == AppLanguage.kazakh ? 'Ер адам дауысы таңдалды' : 'Мужской голос выбран';
-      case GPTVoice.jupiter:
-        return lang == AppLanguage.kazakh ? 'Әйел адам дауысы таңдалды' : 'Женский голос выбран';
+      case GPTVoice.ash: return kk ? 'Ash (ер)' : 'Ash (муж.)';
+      case GPTVoice.ballad: return kk ? 'Ballad (ер)' : 'Ballad (муж.)';
+      case GPTVoice.coral: return kk ? 'Coral (әйел)' : 'Coral (жен.)';
+      case GPTVoice.sage: return kk ? 'Sage (әйел)' : 'Sage (жен.)';
+      case GPTVoice.verse: return kk ? 'Verse (әйел)' : 'Verse (жен.)';
+      case GPTVoice.ember: return kk ? 'Ember (ер)' : 'Ember (муж.)';
+      case GPTVoice.jupiter: return kk ? 'Jupiter (ер)' : 'Jupiter (муж.)';
     }
+  }
+
+  String announcement(AppLanguage lang) {
+    return '${displayName(lang)} ${lang == AppLanguage.kazakh ? 'таңдалды' : 'выбран'}';
   }
 }
 

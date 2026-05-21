@@ -569,31 +569,28 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                   // Voice
                   _settingsSection(
                     title: kk ? 'Дауыс' : 'Голос',
-                    child: Row(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children: GPTVoice.values.map((v) {
                         final selected = profile.gptVoice == v;
-                        return Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              onboarding.updateProfile(profile.copyWith(gptVoice: v));
-                              setSheetState(() {});
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: selected ? AppTheme.primary.withOpacity(0.15) : AppTheme.overlayLight,
-                                border: Border.all(color: selected ? AppTheme.primary : AppTheme.divider),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  v == GPTVoice.ember ? (kk ? 'Ер' : 'Муж.') : (kk ? 'Әйел' : 'Жен.'),
-                                  style: AppTheme.bodySmall.copyWith(
-                                    color: selected ? AppTheme.primary : AppTheme.textSecondary,
-                                    fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                                  ),
-                                ),
+                        return GestureDetector(
+                          onTap: () {
+                            onboarding.updateProfile(profile.copyWith(gptVoice: v));
+                            setSheetState(() {});
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: selected ? AppTheme.primary.withOpacity(0.15) : AppTheme.overlayLight,
+                              border: Border.all(color: selected ? AppTheme.primary : AppTheme.divider),
+                            ),
+                            child: Text(
+                              v.displayName(lang),
+                              style: AppTheme.caption.copyWith(
+                                color: selected ? AppTheme.primary : AppTheme.textSecondary,
+                                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                               ),
                             ),
                           ),
