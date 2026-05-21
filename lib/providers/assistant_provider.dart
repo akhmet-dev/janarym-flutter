@@ -142,25 +142,31 @@ class AssistantProvider extends ChangeNotifier {
       return;
     }
 
-    // Determine locale
+    // Determine locale — iOS doesn't support kk-KZ, fall back to ru-RU
     final lang = OnboardingProvider.shared.currentLanguage;
     String localeId;
     switch (lang) {
-      case AppLanguage.kazakh: localeId = 'kk-KZ'; break;
+      case AppLanguage.kazakh: localeId = 'ru-RU'; break; // Kazakh not supported by iOS STT
       case AppLanguage.russian: localeId = 'ru-RU'; break;
       case AppLanguage.english: localeId = 'en-US'; break;
     }
 
-    await _speech.listen(
-      localeId: localeId,
-      onResult: (result) {
-        _liveTranscript = result.recognizedWords;
-        notifyListeners();
-      },
-      listenFor: Duration(seconds: AppConfig.maxRecordingDuration.toInt()),
-      pauseFor: const Duration(seconds: 3),
-      listenMode: stt.ListenMode.dictation,
-    );
+    try {
+      await _speech.listen(
+        localeId: localeId,
+        onResult: (result) {
+          _liveTranscript = result.recognizedWords;
+          notifyListeners();
+        },
+        listenFor: Duration(seconds: AppConfig.maxRecordingDuration.toInt()),
+        pauseFor: const Duration(seconds: 3),
+        listenMode: stt.ListenMode.dictation,
+      );
+    } catch (e) {
+      debugPrint('STT listen error: $e');
+      // Don't crash — just stay in recording mode so the user can
+      // release PTT and still get a camera-only response.
+    }
   }
 
   Future<void> stopPTT() async {
@@ -237,7 +243,21 @@ class AssistantProvider extends ChangeNotifier {
           activeMode: _activeMode,
         );
       } else {
-        throw Exception('No API key configured');
+        // No API key configured — give a user-friendly message
+        final lang = OnboardingProvider.shared.currentLanguage;
+        _liveResponseText = lang == AppLanguage.kazakh
+            ? 'API кілті баптаулмаған. Серверге қосылу мүмкін емес.'
+            : 'API ключ не настроен. Подключение к серверу невозможно.';
+        _mode = AssistantMode.error;
+        notifyListeners();
+        Future.delayed(const Duration(seconds: 4), () {
+          if (_mode == AssistantMode.error) {
+            _mode = AssistantMode.idle;
+            _liveResponseText = '';
+            notifyListeners();
+          }
+        });
+        return;
       }
 
       _liveResponseText = responseText.trim();
@@ -253,14 +273,21 @@ class AssistantProvider extends ChangeNotifier {
         await ttsService.speak(_liveResponseText, language: lang);
       }
     } catch (e) {
-      _errorMessage = e.toString();
+      debugPrint('Process request error: $e');
+      final lang = OnboardingProvider.shared.currentLanguage;
+      _errorMessage = lang == AppLanguage.kazakh
+          ? 'Серверге қосылу қатесі. Қайта әрекеттеніңіз.'
+          : 'Ошибка подключения к серверу. Попробуйте снова.';
+      _liveResponseText = _errorMessage ?? '';
       _mode = AssistantMode.error;
       notifyListeners();
 
-      // Auto-recover after 3 seconds
-      Future.delayed(const Duration(seconds: 3), () {
+      // Auto-recover after 4 seconds
+      Future.delayed(const Duration(seconds: 4), () {
         if (_mode == AssistantMode.error) {
           _mode = AssistantMode.idle;
+          _liveResponseText = '';
+          _errorMessage = null;
           notifyListeners();
         }
       });

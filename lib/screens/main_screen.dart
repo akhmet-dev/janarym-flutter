@@ -269,17 +269,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                         _buildCircleButton(
                           icon: Icons.settings,
                           color: AppTheme.textSecondary,
-                          onTap: () {
-                            // TODO: Open settings
-                          },
+                          onTap: () => _showSettingsSheet(context, onboarding, lang),
                         ),
                         const SizedBox(height: 10),
                         _buildCircleButton(
                           icon: Icons.local_hospital,
                           color: AppTheme.error,
-                          onTap: () {
-                            // TODO: Open med card
-                          },
+                          onTap: () => _showMedCardSheet(context, onboarding, lang),
                         ),
                       ],
                     ),
@@ -310,27 +306,32 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
             ),
           ),
 
-          // ─── Center PTT indicator ───
+          // ─── Center PTT indicator (subtle dot only) ───
           if (assistant.mode == AssistantMode.recording)
-            Positioned.fill(
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom + 100,
+              left: 0,
+              right: 0,
               child: IgnorePointer(
                 child: Center(
                   child: AnimatedBuilder(
                     animation: _pulseController,
                     builder: (_, __) {
-                      final scale = 1.0 + _pulseController.value * 0.4;
+                      final scale = 1.0 + _pulseController.value * 0.15;
                       return Container(
-                        width: 120 * scale,
-                        height: 120 * scale,
+                        width: 12 * scale,
+                        height: 12 * scale,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AppTheme.recording.withOpacity(0.12 * (1 - _pulseController.value)),
-                          border: Border.all(
-                            color: AppTheme.recording.withOpacity(0.3),
-                            width: 2,
-                          ),
+                          color: AppTheme.recording.withOpacity(0.8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.recording.withOpacity(0.4),
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            ),
+                          ],
                         ),
-                        child: const Icon(Icons.mic, color: AppTheme.recording, size: 48),
                       );
                     },
                   ),
@@ -468,6 +469,318 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.9),
         borderRadius: BorderRadius.circular(3),
+      ),
+    );
+  }
+
+  void _showSettingsSheet(BuildContext context, OnboardingProvider onboarding, AppLanguage lang) {
+    final kk = lang == AppLanguage.kazakh;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final profile = onboarding.profile;
+          return Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: AppTheme.divider),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle bar
+                  Container(width: 40, height: 4, decoration: BoxDecoration(color: AppTheme.textDisabled, borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(height: 16),
+                  Text(kk ? 'Баптаулар' : 'Настройки', style: AppTheme.heading3),
+                  const SizedBox(height: 20),
+
+                  // Speech Rate
+                  _settingsSection(
+                    title: kk ? 'Сөйлеу жылдамдығы' : 'Скорость речи',
+                    child: Row(
+                      children: SpeechRate.values.map((r) {
+                        final selected = profile.speechRate == r;
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              onboarding.updateProfile(profile.copyWith(speechRate: r));
+                              setSheetState(() {});
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                color: selected ? AppTheme.primary.withOpacity(0.15) : AppTheme.overlayLight,
+                                border: Border.all(color: selected ? AppTheme.primary : AppTheme.divider),
+                              ),
+                              child: Center(
+                                child: Text(r.display(lang), style: AppTheme.bodySmall.copyWith(
+                                  color: selected ? AppTheme.primary : AppTheme.textSecondary,
+                                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                                )),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Response Length
+                  _settingsSection(
+                    title: kk ? 'Жауап ұзындығы' : 'Длина ответа',
+                    child: Row(
+                      children: ResponseLength.values.map((r) {
+                        final selected = profile.responseLength == r;
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              onboarding.updateProfile(profile.copyWith(responseLength: r));
+                              setSheetState(() {});
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                color: selected ? AppTheme.primary.withOpacity(0.15) : AppTheme.overlayLight,
+                                border: Border.all(color: selected ? AppTheme.primary : AppTheme.divider),
+                              ),
+                              child: Center(
+                                child: Text(r.display(lang), style: AppTheme.bodySmall.copyWith(
+                                  color: selected ? AppTheme.primary : AppTheme.textSecondary,
+                                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                                )),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Voice
+                  _settingsSection(
+                    title: kk ? 'Дауыс' : 'Голос',
+                    child: Row(
+                      children: GPTVoice.values.map((v) {
+                        final selected = profile.gptVoice == v;
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              onboarding.updateProfile(profile.copyWith(gptVoice: v));
+                              setSheetState(() {});
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                color: selected ? AppTheme.primary.withOpacity(0.15) : AppTheme.overlayLight,
+                                border: Border.all(color: selected ? AppTheme.primary : AppTheme.divider),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  v == GPTVoice.ember ? (kk ? 'Ер' : 'Муж.') : (kk ? 'Әйел' : 'Жен.'),
+                                  style: AppTheme.bodySmall.copyWith(
+                                    color: selected ? AppTheme.primary : AppTheme.textSecondary,
+                                    fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Formality
+                  _settingsSection(
+                    title: kk ? 'Қатынасу формасы' : 'Обращение',
+                    child: Row(
+                      children: Formality.values.map((f) {
+                        final selected = profile.formality == f;
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              onboarding.updateProfile(profile.copyWith(formality: f));
+                              setSheetState(() {});
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                color: selected ? AppTheme.primary.withOpacity(0.15) : AppTheme.overlayLight,
+                                border: Border.all(color: selected ? AppTheme.primary : AppTheme.divider),
+                              ),
+                              child: Center(
+                                child: Text(f.display(lang), style: AppTheme.bodySmall.copyWith(
+                                  color: selected ? AppTheme.primary : AppTheme.textSecondary,
+                                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                                )),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Focus Mode
+                  _settingsSection(
+                    title: kk ? 'Фокус режимі' : 'Режим фокуса',
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: FocusMode.values.map((fm) {
+                        final selected = profile.focusMode == fm;
+                        return GestureDetector(
+                          onTap: () {
+                            onboarding.updateProfile(profile.copyWith(focusMode: fm));
+                            setSheetState(() {});
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: selected ? AppTheme.primary.withOpacity(0.15) : AppTheme.overlayLight,
+                              border: Border.all(color: selected ? AppTheme.primary : AppTheme.divider),
+                            ),
+                            child: Text(fm.announcementText(lang), style: AppTheme.caption.copyWith(
+                              color: selected ? AppTheme.primary : AppTheme.textSecondary,
+                              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                            )),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _settingsSection({required String title, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: AppTheme.bodySmall.copyWith(color: AppTheme.textTertiary, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+
+  void _showMedCardSheet(BuildContext context, OnboardingProvider onboarding, AppLanguage lang) {
+    final kk = lang == AppLanguage.kazakh;
+    final profile = onboarding.profile;
+    final nameController = TextEditingController(text: profile.name);
+    final ageController = TextEditingController(text: profile.age > 0 ? profile.age.toString() : '');
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(color: AppTheme.divider),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: AppTheme.textDisabled, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Icon(Icons.local_hospital, color: AppTheme.error, size: 20),
+                  const SizedBox(width: 8),
+                  Text(kk ? 'Мед карта' : 'Мед. карта', style: AppTheme.heading3),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Name field
+              TextField(
+                controller: nameController,
+                style: AppTheme.body,
+                decoration: InputDecoration(
+                  labelText: kk ? 'Аты-жөні' : 'ФИО',
+                  labelStyle: AppTheme.caption,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppTheme.divider),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppTheme.primary),
+                  ),
+                  filled: true,
+                  fillColor: AppTheme.overlayLight,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Age field
+              TextField(
+                controller: ageController,
+                keyboardType: TextInputType.number,
+                style: AppTheme.body,
+                decoration: InputDecoration(
+                  labelText: kk ? 'Жасы' : 'Возраст',
+                  labelStyle: AppTheme.caption,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppTheme.divider),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppTheme.primary),
+                  ),
+                  filled: true,
+                  fillColor: AppTheme.overlayLight,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Save button
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    onboarding.updateProfile(profile.copyWith(
+                      name: nameController.text.trim(),
+                      age: int.tryParse(ageController.text.trim()) ?? 0,
+                    ));
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(kk ? 'Сақтау' : 'Сохранить'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
